@@ -1,0 +1,136 @@
+services:
+  pg-master-node:
+    image: bitnami/postgresql
+    container_name: pg_master
+    restart: always
+    ports:
+      - '5432:5432'
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    environment:
+      - POSTGRESQL_PGAUDIT_LOG=READ,WRITE
+      - POSTGRESQL_LOG_HOSTNAME=true
+      - POSTGRESQL_REPLICATION_MODE=master
+      - POSTGRESQL_REPLICATION_USER=repl_user
+      - POSTGRESQL_REPLICATION_PASSWORD=repl_user
+      - POSTGRESQL_USERNAME=postgres
+      - POSTGRESQL_PASSWORD=postgres
+    networks:
+      - adminer
+    depends_on:
+      - shard_centr_from_slave_1
+      - shard_west_from_slave_2
+      - shard_north_from_slave_3
+
+  shard_centr_from_slave_1:
+    image: bitnami/postgresql
+    container_name: shard_centr_from_slave_1
+    environment:
+      - POSTGRESQL_USERNAME=centr
+      - POSTGRESQL_PASSWORD=centr
+    volumes:
+      - ./shard_centr.sql:/docker-entrypoint-initdb.d/shard_centr.sql
+    networks:
+      - adminer
+    ports:
+      - '5432'
+
+  shard_west_from_slave_2:
+    image: bitnami/postgresql
+    container_name: shard_west_from_slave_2
+    environment:
+      - POSTGRESQL_USERNAME=west
+      - POSTGRESQL_PASSWORD=west
+    volumes:
+      - ./shard_west.sql:/docker-entrypoint-initdb.d/shard_west.sql
+    networks:
+      - adminer
+    ports:
+      - '5432'
+
+  shard_north_from_slave_3:
+    image: bitnami/postgresql
+    container_name: shard_north_from_slave_3
+    environment:
+      - POSTGRESQL_USERNAME=north
+      - POSTGRESQL_PASSWORD=north
+    volumes:
+      - ./shard_north.sql:/docker-entrypoint-initdb.d/sharding_north.sql
+    networks:
+      - adminer
+    ports:
+      - '5432'
+
+  pg-follower-node-1:
+    image: bitnami/postgresql
+    restart: always
+    container_name: pg_follower_1
+    ports:
+      - '5433:5432'
+    depends_on:
+      - pg-master-node
+    environment:
+      - POSTGRESQL_PASSWORD=postgres
+      - POSTGRESQL_MASTER_HOST=pg_master
+      - POSTGRESQL_PGAUDIT_LOG=READ
+      - POSTGRESQL_LOG_HOSTNAME=true
+      - POSTGRESQL_REPLICATION_MODE=slave
+      - POSTGRESQL_REPLICATION_USER=repl_user
+      - POSTGRESQL_REPLICATION_PASSWORD=repl_user
+      - POSTGRESQL_MASTER_PORT_NUMBER=5432
+    networks:
+      - adminer
+
+  pg-follower-node-2:
+    image: bitnami/postgresql
+    restart: always
+    container_name: pg_follower_2
+    ports:
+      - '5434:5432'
+    depends_on:
+      - pg-master-node
+    environment:
+      - POSTGRESQL_PASSWORD=postgres
+      - POSTGRESQL_MASTER_HOST=pg_master
+      - POSTGRESQL_PGAUDIT_LOG=READ
+      - POSTGRESQL_LOG_HOSTNAME=true
+      - POSTGRESQL_REPLICATION_MODE=slave
+      - POSTGRESQL_REPLICATION_USER=repl_user
+      - POSTGRESQL_REPLICATION_PASSWORD=repl_user
+      - POSTGRESQL_MASTER_PORT_NUMBER=5432
+    networks:
+      - adminer
+
+  pg-follower-node-3:
+    image: bitnami/postgresql
+    restart: always
+    container_name: pg_follower_3
+    ports:
+      - '5435:5432'
+    depends_on:
+      - pg-master-node
+    environment:
+      - POSTGRESQL_PASSWORD=postgres
+      - POSTGRESQL_MASTER_HOST=pg_master
+      - POSTGRESQL_PGAUDIT_LOG=READ
+      - POSTGRESQL_LOG_HOSTNAME=true
+      - POSTGRESQL_REPLICATION_MODE=slave
+      - POSTGRESQL_REPLICATION_USER=repl_user
+      - POSTGRESQL_REPLICATION_PASSWORD=repl_user
+      - POSTGRESQL_MASTER_PORT_NUMBER=5432
+    networks:
+      - adminer
+
+  adminer:
+    container_name: adminer
+    image: adminer
+    ports:
+      - 8080:8080
+    restart: always
+    networks:
+      - adminer
+
+networks:
+  adminer:
+
+
